@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Busca de Códigos Médicos</title>
+<style>
+* {
+margin: 0;
+padding: 0;
+box-sizing: border-box;
+}
+
+body {
+font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+background: linear-gradient(135deg, #141525 0%, #1a1b3d 100%);
+min-height: 100vh;
+color: #ffffff;
+padding: 20px;
+}
+
+.container {
+max-width: 1200px;
+margin: 0 auto;
+}
+
+header {
+text-align: center;
+margin-bottom: 40px;
+padding: 30px 0;
+}
+
+h1 {
+font-size: 2.5rem;
+font-weight: 700;
+margin-bottom: 10px;
+background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+background-clip: text;
+}
+
+.search-container {
+position: sticky;
+top: 20px;
+z-index: 100;
+margin-bottom: 30px;
+}
+
+.search-box {
+position: relative;
+max-width: 600px;
+margin: 0 auto;
+}
+
+#searchInput {
+width: 100%;
+padding: 16px 20px;
+font-size: 1rem;
+border: 2px solid #667eea;
+border-radius: 12px;
+background: rgba(255, 255, 255, 0.1);
+color: #ffffff;
+outline: none;
+transition: all 0.3s ease;
+}
+
+#searchInput::placeholder {
+color: rgba(255, 255, 255, 0.5);
+}
+
+#searchInput:focus {
+background: rgba(255, 255, 255, 0.15);
+border-color: #764ba2;
+box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+}
+
+#results {
+display: none;
+max-width: 900px;
+margin: 12px auto 0;
+background: rgba(255, 255, 255, 0.05);
+border: 1px solid rgba(255, 255, 255, 0.1);
+border-radius: 16px;
+backdrop-filter: blur(10px);
+overflow: hidden;
+}
+
+#results.show {
+display: block;
+}
+
+.category {
+margin-bottom: 50px;
+background: rgba(255, 255, 255, 0.05);
+border-radius: 16px;
+padding: 30px;
+backdrop-filter: blur(10px);
+border: 1px solid rgba(255, 255, 255, 0.1);
+transition: all 0.3s ease;
+}
+
+.category h2 {
+font-size: 1.8rem;
+margin-bottom: 20px;
+color: #667eea;
+}
+
+.table-container {
+overflow-x: auto;
+}
+
+table {
+width: 100%;
+border-collapse: collapse;
+}
+
+thead {
+background: rgba(102, 126, 234, 0.2);
+}
+
+th {
+padding: 14px;
+text-align: left;
+font-weight: 600;
+font-size: 0.95rem;
+color: #ffffff;
+border-bottom: 2px solid #667eea;
+}
+
+td {
+padding: 14px;
+border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+tr {
+transition: all 0.2s ease;
+}
+
+tbody tr:hover {
+background: rgba(102, 126, 234, 0.1);
+}
+
+.item-row {
+display: none;
+}
+
+.item-row.visible {
+display: table-row;
+}
+
+.item-row.highlight {
+background: rgba(102, 126, 234, 0.3);
+animation: pulse 1s ease-in-out;
+}
+
+@keyframes pulse {
+0%, 100% { transform: scale(1); }
+50% { transform: scale(1.02); }
+}
+
+.code-cell {
+font-family: 'Courier New', monospace;
+color: #a8b2ff;
+}
+
+.copy-btn {
+padding: 8px;
+width: 38px;
+height: 38px;
+display: inline-flex;
+align-items: center;
+justify-content: center;
+background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+color: white;
+border: none;
+border-radius: 8px;
+cursor: pointer;
+transition: all 0.3s ease;
+}
+
+.copy-btn svg {
+width: 18px;
+height: 18px;
+fill: currentColor;
+}
+
+.copy-btn:hover {
+transform: translateY(-2px);
+box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.copy-btn:active {
+transform: translateY(0);
+}
+
+.copy-btn.copied {
+background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+}
+
+.no-results {
+text-align: center;
+padding: 40px;
+color: rgba(255, 255, 255, 0.6);
+font-size: 1.1rem;
+display: none;
+}
+
+.no-results.show {
+display: block;
+}
+
+@media (max-width: 768px) {
+h1 {
+font-size: 1.8rem;
+}
+
+.category {
+padding: 20px;
+}
+
+.category h2 {
+font-size: 1.4rem;
+}
+
+table {
+font-size: 0.85rem;
+}
+
+th, td {
+padding: 10px 8px;
+}
+
+.copy-btn {
+padding: 6px;
+width: 34px;
+height: 34px;
+}
+}
+
+@media (max-width: 480px) {
+body {
+padding: 10px;
+}
+
+th:first-child, td:first-child {
+min-width: 180px;
+}
+
+.code-cell {
+font-size: 0.75rem;
+}
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+<header>
+<h1>Sistema de Busca de Códigos</h1>
+</header>
+
+<div class="search-container">
+<div class="search-box">
+<input type="text" id="searchInput" placeholder="Digite pelo menos 2 letras para buscar...">
+</div>
+<div id="results">
+<div id="content"></div>
+<div class="no-results" id="noResults" role="status" aria-live="polite">Nenhum resultado encontrado</div>
+</div>
+</div>
+</div>
+
+<script>
+const data = {
+"Material": [
+{"nome": "Abaixador de Língua (100 Unidades)", "codigo": "00002430045"},
+{"nome": "Abaixador de Lingua (100 unidades)", "codigo": "00002434059"},
+{"nome": "Acetona Frasco C/100ml", "codigo": "00002430061"},
+{"nome": "Água Destilada 500ml Frasco", "codigo": "00002407140"},
+{"nome": "Água Oxigenada 100ml", "codigo": "00002430070"},
+{"nome": "Agulha Descartável 13x4", "codigo": "00002430088"},
+{"nome": "Agulha Descartável 25x6,0", "codigo": "00002430096"},
+{"nome": "Agulha Descartável 30x8,0", "codigo": "00002430100"},
+{"nome": "Agulha Descartável 40x12", "codigo": "00002430118"},
+{"nome": "Agulha descartável 30x8,0", "codigo": "78909762"},
+{"nome": "Agulha descartável 40x12", "codigo": "78909731"},
+{"nome": "Agulha Perican Peridural 18G", "codigo": "00002430134"},
+{"nome": "Agulha Spinal Raqui N°22 Descartável", "codigo": "00002430142"},
+{"nome": "Agulha Spinal Raqui N°25 Descartável", "codigo": "00002444119"},
+{"nome": "Agulha Spinal Raqui N°27 Descartável", "codigo": "00002430169"},
+{"nome": "Álcool 70% Frasco 100ml", "codigo": "00002430177"},
+{"nome": "Álcool 70% Sachê (Álcool Swab)", "codigo": "00002444941"},
+{"nome": "Álcool 70% Sachê ( Álcool Swab )", "codigo": "00002434113"},
+{"nome": "Algodão Hidrofilo Rolo 500g", "codigo": "00002430193"},
+{"nome": "Amniótomo Descartável (Rompedor de Bolsa)", "codigo": "00002430207"},
+{"nome": "Aparelho de Tricotomia", "codigo": "00002430215"},
+{"nome": "Atadura Crepom 10cm x 1,8m", "codigo": "00002430339"},
+{"nome": "Atadura Crepom 15cm x 1,8m", "codigo": "00002430347"},
+{"nome": "Atadura Crepom 20cm x 1,8m", "codigo": "00002430355"},
+{"nome": "Atadura Crepom 6cm x 1,8m", "codigo": "00002430363"},
+{"nome": "Atadura Gessada 10cm x 3m", "codigo": "00002430371"},
+{"nome": "Atadura Gessada 15cm x 3m", "codigo": "00002430380"},
+{"nome": "Atadura Gessada 20cm x 4m", "codigo": "00002430398"},
+{"nome": "Atadura Ortopédica 10cm x 1,8m", "codigo": "00002430401"},
+{"nome": "Atadura Ortopédica 15cm x 1,8m", "codigo": "00002430410"},
+{"nome": "Atadura Ortopédica 20cm x 1,8m", "codigo": "00002430428"},
+{"nome": "Atadura Ortopedica 10cm X 1,8m", "codigo": "00002434717"},
+{"nome": "Atadura Ortopedica 15cm X 1,8m", "codigo": "00002443350"},
+{"nome": "Bolsa de Colostomia (Karaya) 19mm/64mm", "codigo": "00002430436"},
+{"nome": "Canula de Traqueostomia N°6,0 C/Balão", "codigo": "00002430460"},
+{"nome": "Canula de Traqueostomia N°6,5 C/Balão", "codigo": "00002430487"},
+{"nome": "Canula de Traqueostomia N°7,0 C/Balão", "codigo": "00002430479"},
+{"nome": "Canula de Traqueostomia N°7,5 C/Balão", "codigo": "00002430517"},
+{"nome": "Canula de Traqueostomia N°8,0 C/Balão", "codigo": "00002430495"},
+{"nome": "Cardaço N.10 ( 1cm C/ 10 mT )", "codigo": "00002250829"},
+{"nome": "Clip Para Bolsa de Colostomia (Karaya)", "codigo": "00002437767"},
+{"nome": "Coletor De Material Perfurocortante 20 Litros (AMARELO)", "codigo": "00002443902"},
+{"nome": "Coletor De Material Perfurocortante 20 Litros (LARANJA)", "codigo": "00002431602"},
+{"nome": "Coletor de Urina Sistema Aberto", "codigo": "00002422506"},
+{"nome": "Detergente Enzimatico Neutro", "codigo": "00002444330"},
+{"nome": "Dialisador Alto Fluxo", "codigo": "00002420783"},
+{"nome": "Dialisador alto fluxo", "codigo": "00002420783"},
+{"nome": "Eletrodo Descartável Adulto/Infantil", "codigo": "00002419510"},
+{"nome": "Eletrodo neonatal descartável", "codigo": "00002322005"},
+{"nome": "Equipo 7898283814260", "codigo": "7898283814260"},
+{"nome": "Equipo de Transfussão de sangue", "codigo": "00002409097"},
+{"nome": "Equipo Macrogotas", "codigo": "7898283818626"},
+{"nome": "Equipo Polifix 2 Vias", "codigo": "7898283814260"},
+{"nome": "Escova Assepsia", "codigo": "7897780206875"},
+{"nome": "Esparadrapo 10cmX4,5m (4500cm)", "codigo": "00002439859"},
+{"nome": "Fita de HGT - ACCU-CHEK", "codigo": "00002423340"},
+{"nome": "Fita Hospitalar Branca", "codigo": "00002439930"},
+{"nome": "Fita Micropore 5,0 com X 10m", "codigo": "00002435551"},
+{"nome": "Frasco Nutrição Enteral 300ml", "codigo": "00002443074"},
+{"nome": "Gaze Estéril 10x10cm", "codigo": "00002435683"},
+{"nome": "Gaze Estéril 7,5x7,5cm", "codigo": "00002412101"},
+{"nome": "Gel Para Ultrassom", "codigo": "00002440482"},
+{"nome": "Integrador Quimico Tipo 5 Ref: 1243", "codigo": "00002444100"},
+{"nome": "IV Fix Fixador Estéril", "codigo": "7891040118151"},
+{"nome": "Kit Transdutor de Pressão Invasiva", "codigo": "00002445204"},
+{"nome": "Lanceta para HGT C/ DISPOSITIVO DE SEGURANÇA", "codigo": "00002444216"},
+{"nome": "Lencçol Descartavel Com Elastico", "codigo": "00002432595"},
+{"nome": "Linha do Paciente Válvula Anti-Refluxo", "codigo": "00002426870"},
+{"nome": "Luva Cirugica 7.5", "codigo": "7896098801062"},
+{"nome": "Luva de Procedimento G", "codigo": "00002434369"},
+{"nome": "Luva de Procedimento M", "codigo": "00002434016"},
+{"nome": "Luva de Procedimento P", "codigo": "00002429241"},
+{"nome": "Luva de Vinil G sem pó", "codigo": "00002434741"},
+{"nome": "Luva de Vinil M sem pó", "codigo": "00002434733"},
+{"nome": "Malha Tubular 10cm", "codigo": "00002444186"},
+{"nome": "Malha Tubular 15cm", "codigo": "00002443120"},
+{"nome": "Manta P/ Esterilização x 900mm", "codigo": "00002443023"},
+{"nome": "Manta Termica Cirurgica ( Corpo Inteiro )", "codigo": "00002417405"},
+{"nome": "Mascara Tripla Descartável Branca C/ Elastico", "codigo": "00002435608"},
+{"nome": "Mata P/ Esterilização 1,20 x 1,20", "codigo": "00002443139"},
+{"nome": "Oralpack Descartável 3ml", "codigo": "00002435055"},
+{"nome": "Oralpak Descartável 20ml", "codigo": "00002444089"},
+{"nome": "Oralpak Descatavel 3ml", "codigo": "00002444070"},
+{"nome": "Papel para Cardioversor Nihon Kohden RQ", "codigo": "00002359472"},
+{"nome": "Placa de Eletro Cautério Universal", "codigo": "00002419610"},
+{"nome": "Preservativo Não lubrificado", "codigo": "00002422310"},
+{"nome": "Seringa para bomba injetora", "codigo": "00002448211"},
+{"nome": "Set de linhas de sangue arterial e venos", "codigo": "00002425793"},
+{"nome": "Sonda Aspiração N°14 Traqueal", "codigo": "00002343967"},
+{"nome": "Sonda foley 2 vias N 18", "codigo": "00002443988"},
+{"nome": "Sonda Uretral N°08", "codigo": "00002385961"},
+{"nome": "Sonda Uretral N°12", "codigo": "00002343967"},
+{"nome": "Sonda uretal N 12", "codigo": "00002389258"},
+{"nome": "Tela Metálica 19x1 80mm", "codigo": "00002278596"},
+{"nome": "Teste de Detecção de Proteina - Hemocheck", "codigo": "00002443716"},
+{"nome": "Teste Desafio Biologico Ref: 41382 Pacote", "codigo": "00002426714"},
+{"nome": "Teste Desafio Biologico Ref: 41382 Pacote", "codigo": "00002435047"},
+{"nome": "Teste Desafio Ref?: 1233 (bowie Dick)", "codigo": "00002444143"},
+{"nome": "Touca Descartável Com Elástico", "codigo": "00002435756"},
+{"nome": "Touca Descartavel Com Elastico", "codigo": "00002444160"},
+{"nome": "Tubo N°4,0 Endotraqueal S/Balão", "codigo": "00002278596"},
+{"nome": "Tubo N°5,0 Endotraqueal S/Balão", "codigo": "00002269546"},
+{"nome": "Tubo N°5,5 Endotraqueal C/Balão", "codigo": "00002426404"},
+{"nome": "Tubo N°7,0 Endotraqueal C/Balão", "codigo": "00002343967"},
+{"nome": "Tubo N 7,0 Endotraqueal C/ balão", "codigo": "00002443473"}
+],
+"Medicamento": [
+{"nome": "Insulina Nph Normal Humana", "codigo": "00002442736"},
+{"nome": "Lactulose 667mg/ml (Xarope)", "codigo": "00002424002"},
+{"nome": "Lactulose 667mg/ml xarope", "codigo": "00002444488"},
+{"nome": "Metronidazol 500mg IV Bolsa 100ml", "codigo": "00002440350"},
+{"nome": "Óleo Mineral Purificado", "codigo": "00002403285"}
+],
+"Soros": [
+{"nome": "Agua Destilada 500mL", "codigo": "00002407140"},
+{"nome": "Água Destilada 500ml Frasco", "codigo": "00002407140"},
+{"nome": "Bicarbonato de Sódio 8,4% Frasco 5L", "codigo": "00002395606"},
+{"nome": "Bicarbonato de Sódio 8,4% Frasco C/250ml", "codigo": "00002402785"},
+{"nome": "Cloreto de Sódio + Cloreto de Potássio", "codigo": "00002399164"},
+{"nome": "Manitol Solução 20% Frasco 250ml", "codigo": "00002404982"},
+{"nome": "Soro Fisiológico 0,9% 10ml Ampola", "codigo": "00002427680"},
+{"nome": "Soro Fisiológico 0,9% 100ml Frasco", "codigo": "00002426870"},
+{"nome": "Soro Fisiológico 0,9% 1000ml Frasco", "codigo": "00002429756"},
+{"nome": "Soro Fisiológico 0,9% 250ml Frasco", "codigo": "00002427370"},
+{"nome": "Soro Fisiológico 0,9% 500ml Frasco", "codigo": "00002427362"},
+{"nome": "Soro Glicofisiológico 500ml Frasco", "codigo": "00002411229"},
+{"nome": "Soro Glicosado 10% 250ml Frasco", "codigo": "00002414333"},
+{"nome": "Soro Glicosado 5% 100ml Frasco", "codigo": "00002419572"},
+{"nome": "Soro Glicosado 5% 1000ml Frasco", "codigo": "00002419165"},
+{"nome": "Soro Glicosado 5% 250ml Frasco", "codigo": "00002419564"},
+{"nome": "Soro Glicosado 5% 500ml Frasco", "codigo": "00002419173"},
+{"nome": "Soro Ringer Com Lactato 500ml Frasco", "codigo": "00002422220"}
+]
+};
+
+const searchInput = document.getElementById('searchInput');
+const results = document.getElementById('results');
+const content = document.getElementById('content');
+const noResults = document.getElementById('noResults');
+let categoryEls = {};
+
+function normalizeText(text) {
+return String(text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function prepareData() {
+Object.keys(data).forEach(category => {
+data[category].forEach(item => {
+item._nomeNorm = normalizeText(item.nome);
+item._codigoNorm = normalizeText(item.codigo);
+item._row = null;
+});
+});
+}
+
+function sortData() {
+Object.keys(data).forEach(category => {
+data[category].sort((a, b) => normalizeText(a.nome).localeCompare(normalizeText(b.nome)));
+});
+}
+
+function renderCategories() {
+content.innerHTML = '';
+categoryEls = {};
+Object.keys(data).forEach(category => {
+const categoryDiv = document.createElement('div');
+categoryDiv.className = 'category';
+categoryDiv.setAttribute('data-category', category);
+categoryDiv.innerHTML = `
+<h2>${category}</h2>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>Nome</th>
+<th>Código</th>
+<th></th>
+</tr>
+</thead>
+<tbody id="${category}-tbody"></tbody>
+</table>
+</div>
+`;
+content.appendChild(categoryDiv);
+categoryEls[category] = categoryDiv;
+
+const tbody = document.getElementById(`${category}-tbody`);
+data[category].forEach((item, index) => {
+const row = document.createElement('tr');
+row.className = 'item-row';
+row.setAttribute('data-category', category);
+row.setAttribute('data-index', index);
+item._row = row;
+row.innerHTML = `
+<td>${item.nome}</td>
+<td class="code-cell">${item.codigo}</td>
+<td><button class="copy-btn" type="button" data-code="${item.codigo}" aria-label="Copiar código" title="Copiar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H6a2 2 0 0 0-2 2v12h2V3h10V1zm3 4H10a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16h-9V7h9v14z"/></svg></button></td>
+`;
+tbody.appendChild(row);
+});
+});
+}
+
+function copyCode(code, btn) {
+if (!btn) return;
+const originalTitle = btn.getAttribute('title') || 'Copiar';
+const originalAria = btn.getAttribute('aria-label') || 'Copiar código';
+const done = () => {
+btn.classList.add('copied');
+btn.setAttribute('title', 'Copiado');
+btn.setAttribute('aria-label', 'Copiado');
+setTimeout(() => {
+btn.classList.remove('copied');
+btn.setAttribute('title', originalTitle);
+btn.setAttribute('aria-label', originalAria);
+}, 2000);
+};
+
+if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+navigator.clipboard.writeText(code).then(done).catch(() => {
+const ta = document.createElement('textarea');
+ta.value = code;
+ta.setAttribute('readonly', '');
+ta.style.position = 'fixed';
+ta.style.left = '-9999px';
+document.body.appendChild(ta);
+ta.select();
+document.execCommand('copy');
+document.body.removeChild(ta);
+done();
+});
+return;
+}
+
+const ta = document.createElement('textarea');
+ta.value = code;
+ta.setAttribute('readonly', '');
+ta.style.position = 'fixed';
+ta.style.left = '-9999px';
+document.body.appendChild(ta);
+ta.select();
+document.execCommand('copy');
+document.body.removeChild(ta);
+done();
+}
+
+function search(query) {
+const normalizedQuery = normalizeText(query);
+let hasResults = false;
+
+if (query.length < 2) {
+Object.keys(data).forEach(category => {
+const categoryEl = categoryEls[category];
+if (categoryEl) categoryEl.style.display = '';
+data[category].forEach(item => {
+if (item._row) item._row.classList.remove('visible', 'highlight');
+});
+});
+noResults.classList.remove('show');
+results.classList.remove('show');
+return;
+}
+
+const wasHidden = !results.classList.contains('show');
+results.classList.add('show');
+if (wasHidden) {
+results.scrollIntoView({ block: 'start', behavior: 'smooth' });
+}
+
+Object.keys(data).forEach(category => {
+const categoryEl = categoryEls[category];
+let categoryHasResults = false;
+
+data[category].forEach((item, index) => {
+const row = item._row;
+const normalizedName = item._nomeNorm;
+const normalizedCode = item._codigoNorm;
+
+if (normalizedName.includes(normalizedQuery) || normalizedCode.includes(normalizedQuery)) {
+row.classList.add('visible', 'highlight');
+categoryHasResults = true;
+hasResults = true;
+} else {
+row.classList.remove('visible', 'highlight');
+}
+});
+if (categoryEl) categoryEl.style.display = categoryHasResults ? '' : 'none';
+});
+
+if (hasResults) {
+noResults.classList.remove('show');
+} else {
+noResults.classList.add('show');
+}
+}
+
+content.addEventListener('click', (e) => {
+const btn = e.target.closest('.copy-btn');
+if (!btn) return;
+const code = btn.getAttribute('data-code') || '';
+copyCode(code, btn);
+});
+
+let searchTimer;
+searchInput.addEventListener('input', (e) => {
+const value = e.target.value;
+clearTimeout(searchTimer);
+searchTimer = setTimeout(() => search(value), 180);
+});
+
+sortData();
+prepareData();
+renderCategories();
+</script>
+</body>
+</html>
